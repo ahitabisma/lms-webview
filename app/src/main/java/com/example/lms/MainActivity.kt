@@ -1,9 +1,10 @@
-@file:Suppress("DEPRECATION", "LocalVariableName")
+@file:Suppress("DEPRECATION", "LocalVariableName", "UNUSED_ANONYMOUS_PARAMETER")
 
 package com.example.lms
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.DownloadManager
 import android.content.ClipData
 import android.content.ContentValues
 import android.content.Intent
@@ -55,6 +56,29 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener {
         webView.webViewClient = MyWebViewClient()
         webView.loadUrl(url)
         val javascriptInterface = MyJavascriptInterface(this)
+
+        //Download File
+        webView.setDownloadListener(DownloadListener { urlDownload, userAgent, contentDisposition, mimeType, length ->
+            val request = DownloadManager.Request(Uri.parse(urlDownload))
+            request.setMimeType(mimeType)
+            val cookies = CookieManager.getInstance().getCookie(urlDownload)
+            request.addRequestHeader("cookie", cookies)
+            request.addRequestHeader("User-Agent", userAgent)
+            request.setDescription("Downloading File ...")
+            request.setTitle(URLUtil.guessFileName(urlDownload, contentDisposition, userAgent))
+            request.allowScanningByMediaScanner()
+            request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+            request.setDestinationInExternalPublicDir(
+                Environment.DIRECTORY_DOWNLOADS, URLUtil.guessFileName(
+                    urlDownload, contentDisposition, mimeType
+                )
+            )
+            val manager = getSystemService(DOWNLOAD_SERVICE) as DownloadManager
+            manager.enqueue(request)
+
+            Toast.makeText(this, "Mengunduh File ...", Toast.LENGTH_SHORT).show()
+        })
+
 
         // Add JavaScriptInterface to WebView
         webView.addJavascriptInterface(javascriptInterface, "AndroidInterface")
